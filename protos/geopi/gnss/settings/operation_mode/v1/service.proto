@@ -1,0 +1,46 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.operation_mode.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.OperationMode.v1.OperationModeSettings";
+option java_package = "com.leica_geosystems.geopi.gnss.settings.operation_mode.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// Service for controlling the operational mode of the GNSS sensor.
+service OperationModeSettings {
+  // Set operational mode.
+  rpc SetMode(SetModeRequest) returns (SetModeResponse);
+
+  // Get current operational mode.
+  rpc GetMode(GetModeRequest) returns (GetModeResponse);
+}
+
+enum Mode {
+  // Not specified, default value (must be zero).
+  MODE_UNSPECIFIED = 0;
+  // The sensor is operating in the rover mode.
+  MODE_ROVER = 1;
+  // The sensor is operating in the base mode.
+  MODE_BASE = 2;
+}
+
+message SetModeRequest {
+  // Set the mode of the GNSS sensor.
+  Mode mode = 1;
+}
+
+message GetModeRequest {
+  // empty
+}
+
+message SetModeResponse {
+  // empty
+}
+
+message GetModeResponse {
+  // Current operational mode of the GNSS sensor.
+  Mode mode = 1;
+}

@@ -1,0 +1,187 @@
+// Copyright 2024 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.observation.position.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/rpc/status.proto";
+import "geopi/gnss/observation/position/v1/error_details.proto";
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.Observation.Position.V1";
+option java_package = "com.leica_geosystems.geopi.gnss.observation.position.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// GNSS position data service
+service PositionObservation {
+  // Get current position from the sensor
+  rpc GetPosition(GetPositionRequest) returns (GetPositionResponse);
+  // Get position stream from the sensor
+  rpc GetPositionStream(GetPositionStreamRequest)
+      returns (stream GetPositionStreamResponse);
+}
+
+// A request message for GnssPosition.GetPosition
+message GetPositionRequest {
+  // empty
+}
+
+// A response message for GnssPosition.GetPosition
+message GetPositionResponse {
+  // Position data
+  Position position = 1;
+}
+
+// A request message for GnssPosition.GetPositionStream
+message GetPositionStreamRequest {
+  // Stream interval [ms]
+  // Interval in which position will be reported. Supported values: [100, 200,
+  // 500, 1000]
+  uint32 interval = 1;
+}
+
+// A response message for GnssPosition.GetPositionStream
+message GetPositionStreamResponse {
+  oneof message {
+    Position data = 1;
+    google.rpc.Status error = 2;
+  }
+}
+
+enum ConstellationType {
+  CONSTELLATION_TYPE_UNSPECIFIED = 0;
+  CONSTELLATION_TYPE_GPS         = 1;
+  CONSTELLATION_TYPE_GALILEO     = 2;
+  CONSTELLATION_TYPE_GLONASS     = 3;
+  CONSTELLATION_TYPE_BEIDOU      = 4;
+  CONSTELLATION_TYPE_NAVIC       = 5;
+  CONSTELLATION_TYPE_QZSS        = 6;
+}
+
+message SatelliteUsed {
+  ConstellationType constellation = 1;
+  uint32 number_of_satellites = 2;
+}
+
+enum SolutionType {
+  SOLUTION_TYPE_UNSPECIFIED                 = 0;
+  SOLUTION_TYPE_NAVIGATED                   = 1;
+  SOLUTION_TYPE_DIFFERENTIAL_PHASE          = 2;
+  SOLUTION_TYPE_XRTK_PHASE_FIX              = 3;
+  SOLUTION_TYPE_RTK_PHASE_FIX_POSITION      = 4;
+  SOLUTION_TYPE_PPP_CONVERGED               = 5;
+  SOLUTION_TYPE_PPP_CONVERGING              = 6;
+  SOLUTION_TYPE_DIFFERENTIAL_CODE_POSITION  = 7;
+}
+
+enum PredictionType {
+  // Not specified, default value (must be zero).
+  PREDICTION_TYPE_UNSPECIFIED = 0;
+  // Position is based on measurement
+  PREDICTION_TYPE_NO_PREDICTION = 1;
+  // Position is predicted based on last received correction
+  PREDICTION_TYPE_DEAD_RECKONING = 2;
+}
+
+message Position {
+  // UTC timestamp when position was acquired
+  google.protobuf.Timestamp timestamp = 1;
+
+  // WGS84 Position
+  WGS84Position position = 2;
+
+  // Attitude (quaternion & quality) information
+  optional Attitude attitude = 3;
+
+  // Tilt information provided when tilt is enabled or compensated.
+  optional TiltInfo tilt_info = 8;
+
+  // Indicates if the position is compensated with tilt.
+  // If tilt_info is not present in response, this field is not set.
+  // If tilt_info is present in response, this field is set to true if overall tilt quality is lower than a threshold.
+  // If tilt_info is present in response, this field is set to false if overall tilt quality is higher or
+  // equal to a threshold.
+  optional bool tilt_compensation_applied = 4;
+
+  SolutionType solution_type = 5;
+
+  PredictionType prediction_type = 6;
+
+  // Number of satellites used in the solution per constellation
+  repeated SatelliteUsed used_satellites = 7;
+}
+
+// Position in World Geodetic System standard (WGS 84)
+message WGS84Position {
+  // Latitude [degrees]
+  // North and South are indicated by positive and negative degrees respectively
+  double latitude = 1;
+
+  // Longitude [degrees]
+  // East and West are indicated by positive and negative degrees respectively
+  double longitude = 2;
+
+  // Ellipsoid height [meters]
+  double ellipsoid_height = 3;
+
+  // Latitude quality (standard deviation) [meters]
+  double latitude_quality = 4;
+
+  // Longitude quality [meters]
+  double longitude_quality = 5;
+
+  // Ellipsoid height quality [meters]
+  double ellipsoid_height_quality = 6;
+}
+
+message Attitude {
+  // Orientation represented as a quaternion
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  double w = 4;
+
+  // Variance of the X component
+  double qxx = 5;
+
+  // Covariance between X and Y components
+  double qxy = 6;
+
+  // Covariance between X and Z components
+  double qxz = 7;
+
+  // Variance of the Y component
+  double qyy = 8;
+
+  // Covariance between Y and Z components
+  double qyz = 9;
+
+  // Variance of the Z component
+  double qzz = 10;
+}
+
+// Information about the tilt.
+message TiltInfo {
+  // Tilt in [radians]
+  double tilt = 1;
+  // Quality of tilt in [radians]
+  double tilt_quality = 2;
+
+  // Additional tilt information provided when tilt compensation is enabled.
+  optional AdditionalTiltInfo additional_info = 3;
+}
+
+// Additional tilt information provided when tilt compensation is enabled.
+message AdditionalTiltInfo {
+  // Tilt direction in [radians]
+  double tilt_direction = 1;
+  // Heading in [radians]
+  double heading = 2;
+  // Quality of tilt direction in [radians]
+  double tilt_direction_quality = 3;
+  // Quality of heading in [radians]
+  double heading_quality = 4;
+  // Overall tilt quality in [radians]
+  double overall_tilt_quality = 5;
+}

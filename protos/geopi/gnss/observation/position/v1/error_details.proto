@@ -1,0 +1,26 @@
+// Copyright 2024 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+		
+package geopi.gnss.observation.position.v1;
+
+// Service error codes
+enum ErrorCode {
+  // Not specified, default value (must be zero).
+  ERROR_CODE_UNSPECIFIED = 0;
+  // GNSS position is not available.
+  ERROR_CODE_NO_POSITION_AVAILABLE = 1;
+  // GNSS position is outside the licensed geofence.
+  ERROR_CODE_POSITION_OUTSIDE_GEOFENCE = 2;
+  // The sensor does not support the requested update interval.
+  ERROR_CODE_STREAM_INTERVAL_NOT_SUPPORTED = 3;
+  // The sensor tilt is above the limit.
+  ERROR_CODE_TILT_OUTSIDE_BOUNDARIES = 4;
+}
+
+// Detailed error info.
+// To get ErrorCodeInfo, please refer to details of returned gRPC status.
+message ErrorCodeInfo {
+  // Code of an error.
+  ErrorCode error_code = 1;
+}

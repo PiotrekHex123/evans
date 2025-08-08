@@ -1,0 +1,51 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.antenna.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.Settings.v1.AntennaSettings";
+option java_package = "com.leica_geosystems.geopi.gnss.settings.antenna.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// Service for controlling antenna and pole settings
+service AntennaSettings {
+  rpc SetAntennaHeight(SetAntennaHeightRequest)
+      returns (SetAntennaHeightResponse);
+  rpc SetAntennaType(SetAntennaTypeRequest)
+      returns (SetAntennaTypeResponse);
+  rpc SetAntennaMovingOffset(SetAntennaMovingOffsetRequest)
+      returns (SetAntennaMovingOffsetResponse);
+}
+
+message SetAntennaHeightRequest {
+  // New antenna height [m]
+  // Values in the range of [-99.000; 99.000] meters are accepted
+  float height = 1;
+}
+
+message SetAntennaHeightResponse {
+  // empty
+}
+
+message SetAntennaTypeRequest {
+  // New antenna type
+  // Accepted values: ['ADVNULLANTENNA' or any antenna type]
+  // Selecting 'ADVNULLANTENNA' sets the vertical offset to 0 meters.
+  string antenna_type = 1;
+}
+
+message SetAntennaTypeResponse {
+  // empty
+}
+
+message SetAntennaMovingOffsetRequest {
+  // New antenna moving offset [m]
+  // Values in the range of [-199.9999; 199.9999] meters are accepted
+  float moving_offset = 1;
+}
+
+message SetAntennaMovingOffsetResponse {
+  // empty
+}

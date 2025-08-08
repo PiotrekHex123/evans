@@ -1,0 +1,69 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.common.status.system.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Common.Status.System.V1";
+option java_package = "com.leica_geosystems.geopi.common.status.system.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// System information service
+service SystemInformation {
+  // Get Basic System Information
+  rpc GetInformation(GetInformationRequest) returns (GetInformationResponse);
+}
+
+// A request message for SystemInformation.GetInformation
+message GetInformationRequest {
+  // empty
+}
+
+message MeasurementEngineInformation {
+  string serial_number = 1;
+  string hardware_model = 2;
+  string bootloader_version = 3;
+  string firmware_version = 4;
+}
+
+message ImuInformation {
+  string firmware_version = 1;
+}
+
+message RadioInformation {
+  string name = 1;
+}
+
+message PhoneInformation {
+  string manufacturer = 1;
+  string name = 2;
+  string hardware_revision = 3;
+  string firmware_version = 4;
+  string imei = 5;
+}
+
+message SensorInformation {
+  string name = 1;
+  string serial_number = 2;
+  string equipment_number = 3;
+  string efi_version = 4;
+  string os_version = 5;
+  string bootloader_version = 6;
+  string firmware_version = 7;
+}
+
+message GeoPiInformation {
+  string api_version = 1;
+}
+
+// A response message for SystemInformation.GetInformation
+message GetInformationResponse {
+  SensorInformation sensor = 1;
+  GeoPiInformation geopi = 2;
+
+  optional ImuInformation imu = 3;
+  optional RadioInformation radio = 4;
+  optional PhoneInformation phone = 5;
+  optional MeasurementEngineInformation measurement_engine = 6;
+}

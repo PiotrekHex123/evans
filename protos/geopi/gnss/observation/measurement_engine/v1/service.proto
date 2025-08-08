@@ -1,0 +1,44 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.observation.measurement_engine.v1;
+
+import "google/rpc/status.proto";
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.Observation.MeasurementEngine.V1";
+option java_multiple_files = true;
+option java_outer_classname = "ServiceProto";
+option java_package = "com.leica_geosystems.geopi.gnss.observation.measurement_engine.v1";
+
+// Service for accessing GNSS raw observations captured by the measurement engine.
+service GnssMeasurementEngineObservation {
+  // Get raw GNSS observations and ephemerides from the measurement engine.
+  // The data are streamed as RTCM frames in binary format.
+  // When the stream is open, together with the first observation, the client will receive all the knows epehemerides.
+  // Later, the ephemerides will be sent only when they are updated.
+  rpc GetRawObservationStream(GetRawObservationStreamRequest) returns (stream GetRawObservationStreamResponse);
+}
+
+// A request message for GetGnssRawObservationStream method
+message GetRawObservationStreamRequest {
+  // Stream interval [ms]
+  // Interval in which the observations are sent. Supported values: [100, 200, 500, 1000]
+  uint32 interval = 1;
+}
+
+// A response message for GetRawObservationStream method
+message GetRawObservationStreamResponse {
+  oneof message {
+    RtcmFrames frames = 1;
+    google.rpc.Status error = 2;
+  }
+}
+
+// A message to hold RTCM frames
+message RtcmFrames {
+  // Binary data of the RTCM message 3.XX, with all constellations available and MSM7 enabled.
+  // Multiple MSM7-type messages for different constellations can be sent in a
+  // single frames array element.
+  repeated bytes frames = 1;
+}

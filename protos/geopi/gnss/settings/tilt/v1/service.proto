@@ -1,0 +1,36 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.tilt.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.Settings.v1.TiltSettings";
+option java_package = "com.leica_geosystems.geopi.gnss.settings.tilt.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// Service for controlling tilt settings.
+service TiltSettings {
+  // Set tilt mode.
+  rpc SetTiltMode(SetTiltModeRequest) returns (SetTiltModeResponse);
+}
+
+enum TiltMode {
+  // Not specified, default value (must be zero).
+  TILT_MODE_UNSPECIFIED = 0;
+  // Tilt mode is disabled.
+  TILT_MODE_DISABLED = 1;
+  // Tilt mode is enabled.
+  TILT_MODE_ENABLED = 2;
+  // Tilt mode is enabled with tilt compensation.
+  TILT_MODE_COMPENSATED = 3;
+}
+
+message SetTiltModeRequest {
+  // Set tilt mode
+  TiltMode tilt_mode = 1;
+}
+
+message SetTiltModeResponse {
+  // empty
+}

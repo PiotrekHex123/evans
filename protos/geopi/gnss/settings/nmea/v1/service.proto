@@ -1,0 +1,102 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.nmea.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.Settings.Nmea.V1";
+option java_package = "com.leica_geosystems.geopi.gnss.settings.nmea.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// GNSS Nmea information
+service GnssNmea {
+  // Configures parameters of the NMEA stream
+  rpc SetNmea(SetNmeaRequest) returns (SetNmeaResponse);
+}
+
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_ZDA = 1;     // Time and Date
+  MESSAGE_TYPE_GGA = 2;     // Global Positioning System Fix Data
+  MESSAGE_TYPE_GGQ = 3;     // Leica Geographic Position with CQ
+  MESSAGE_TYPE_GLL = 4;     // Geographic Position - Latitude/Longitude
+  MESSAGE_TYPE_GNS = 5;     // GNSS Fix Data
+  MESSAGE_TYPE_GST = 6;     // GNSS Pseudorange Error Statistics
+  MESSAGE_TYPE_VTG = 7;     // Course Over Ground and Ground Speed
+  MESSAGE_TYPE_GSA = 8;     // GNSS DOP and Active Satellites
+  MESSAGE_TYPE_GSV = 9;     // GNSS Satellites in View
+  MESSAGE_TYPE_LLK = 10;    // Leica Local Position and GDOP
+  MESSAGE_TYPE_LLQ = 11;    // Leica Local Position and Quality
+  MESSAGE_TYPE_GGK = 12;    // Leica Geographic Position with GDOP
+  MESSAGE_TYPE_RMC = 13;    // Recommended Minimum Navigation Information
+}
+
+enum MessageRate {
+  MESSAGE_RATE_UNSPECIFIED = 0;
+  MESSAGE_RATE_1_HOUR = 1;
+  MESSAGE_RATE_30_MIN = 2;
+  MESSAGE_RATE_20_MIN = 3;
+  MESSAGE_RATE_15_MIN = 4;
+  MESSAGE_RATE_12_MIN = 5;
+  MESSAGE_RATE_10_MIN = 6;
+  MESSAGE_RATE_6_MIN = 7;
+  MESSAGE_RATE_5_MIN = 8;
+  MESSAGE_RATE_4_MIN = 9;
+  MESSAGE_RATE_3_MIN = 10;
+  MESSAGE_RATE_2_MIN = 11;
+  MESSAGE_RATE_1_MIN = 12;
+  MESSAGE_RATE_30_SEC = 13;
+  MESSAGE_RATE_20_SEC = 14;
+  MESSAGE_RATE_15_SEC = 15;
+  MESSAGE_RATE_10_SEC = 16;
+  MESSAGE_RATE_6_SEC = 17;
+  MESSAGE_RATE_5_SEC = 18;
+  MESSAGE_RATE_4_SEC = 19;
+  MESSAGE_RATE_3_SEC = 20;
+  MESSAGE_RATE_2_SEC = 21;
+  MESSAGE_RATE_1_HZ = 22;
+  MESSAGE_RATE_2_HZ = 23;
+  MESSAGE_RATE_5_HZ = 24;
+  MESSAGE_RATE_10_HZ = 25;
+  MESSAGE_RATE_20_HZ = 26;
+
+  MESSAGE_RATE_ON_POINT_STORED = 201;
+}
+
+
+enum NmeaVersion {
+  NMEA_VERSION_UNSPECIFIED = 0;
+  NMEA_VERSION_4_0 = 1;
+  NMEA_VERSION_4_1 = 2;
+}
+
+enum Output {
+  OUTPUT_UNSPECIFIED = 0;
+  // first Bluetooth channel
+  OUTPUT_BLUETOOTH_1 = 1;
+  OUTPUT_INTERNET_1 = 2;
+  OUTPUT_INTERNET_2 = 3;
+  OUTPUT_INTERNET_3 = 4;
+  // Stream configuration for GetNmea method (see geopi/gnss/observation/nmea/v1)
+  OUTPUT_GEOPI_1 = 5;
+}
+
+message NmeaMessageConfig {
+  MessageType type = 1;
+  MessageRate rate = 2;
+}
+
+// A request message for GnssNmea.SetNmea
+message SetNmeaRequest
+{
+  NmeaVersion version = 1;
+  Output output = 2;
+  repeated NmeaMessageConfig message_configs = 3;
+}
+
+// A response message for GnssNmea.SetNmea
+message SetNmeaResponse
+{
+  // empty
+}

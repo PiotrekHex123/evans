@@ -1,0 +1,39 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.common.status.battery.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Common.Status.Battery.V1";
+option java_package = "com.leica_geosystems.geopi.common.status.battery.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// Battery status service.
+service BatteryStatus {
+  // Get current battery status from the device.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+}
+
+// A request message for Battery.GetStatus.
+message GetStatusRequest {
+  // empty
+}
+
+// Information about single battery.
+message BatteryInfo {
+  // Expressed as a percentage in the range of 0 to 100.
+  uint32 state_of_charge = 1;
+  bool is_charging = 2;
+}
+
+message ExternalPowerInfo {
+  // Indicates if the device is connected to an external power source.
+  bool is_connected = 1;
+}
+
+// A response message for Battery.GetStatus.
+message GetStatusResponse {
+  repeated BatteryInfo batteries = 1;
+  ExternalPowerInfo external_power = 2;
+}

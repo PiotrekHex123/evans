@@ -1,0 +1,30 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.antenna.v1;
+
+// Service error codes
+enum ErrorCode {
+  // Not specified, default value (must be zero).
+  ERROR_CODE_UNSPECIFIED = 0;
+
+  // Antenna offset cannot be set to the provided value
+  ERROR_CODE_ANTENNA_HEIGHT_OUT_OF_RANGE = 1;
+
+  // Current sensor's state does not allow configuring
+  ERROR_CODE_INVALID_STATE = 2;
+
+  // Antenna type cannot be set to the provided value
+  ERROR_CODE_ANTENNA_TYPE_OUT_OF_RANGE = 3;
+
+  // Antenna moving offset cannot be set to the provided value
+  ERROR_CODE_ANTENNA_MOVING_OFFSET_OUT_OF_RANGE = 4;
+}
+
+// Detailed error info.
+// To get ErrorCodeInfo, please refer to details of returned gRPC status.
+message ErrorCodeInfo {
+  // Code of an error.
+  ErrorCode error_code = 1;
+}

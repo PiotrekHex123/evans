@@ -1,0 +1,172 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.rtk.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.Settings.v1.RtkSettings";
+option java_package = "com.leica_geosystems.geopi.gnss.settings.rtk.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// Service for configuring RTK
+service RtkSettings {
+  // Configure receiving RTK stream.
+  // Sensor will listen for incoming messages on RTK port (61968).
+  rpc SetRtkInput(SetRtkInputRequest) returns (SetRtkInputResponse);
+
+  // Clear the RTK input source. The Sensor no longer uses RTK for corrections.
+  rpc ClearRtkInput(ClearRtkInputRequest) returns (ClearRtkInputResponse);
+}
+
+message SetRtkInputRequest {
+  oneof data_format {
+    Leica4g leica4g = 1;
+    Leica leica = 2;
+    CMR cmr = 3;
+    RTCM12v2 rtcm_1_2_v2 = 4;
+    RTCM92v2 rtcm_9_2_v2 = 5;
+    RTCM1819v2 rtcm_18_19_v2 = 6;
+    RTCM2021v2 rtcm_20_21_v2 = 7;
+    RTCMv3 rtcmv3 = 8;
+  }
+}
+
+message SetRtkInputResponse {
+  // empty
+}
+
+message ClearRtkInputRequest {
+  // empty
+}
+
+message ClearRtkInputResponse {
+  // empty
+}
+
+message RTCMv3 {
+  SensorAtBase sensor_at_base = 1;
+  // Accepted values: 'automatic' or any antenna type defined in antenna file or user-defined
+  string antenna_at_base = 2;
+
+  // Values in range [0; 4095] are accepted.
+  optional uint32 rtk_base_id = 3;
+  optional NetworkType network_type = 4;
+}
+
+message Leica4g {
+  SensorAtBase sensor_at_base = 1;
+  // Accepted values: 'automatic' or any antenna type defined in antenna file or user-defined
+  string antenna_at_base = 2;
+
+  // Values in range [0; 4095] are accepted.
+  optional uint32 rtk_base_id = 3;
+  optional NetworkType network_type = 4;
+}
+
+message Leica {
+  SensorAtBase sensor_at_base = 1;
+  // Accepted values: 'automatic' or any antenna type defined in antenna file or user-defined
+  string antenna_at_base = 2;
+
+  // Values in range [0; 31] are accepted.
+  optional uint32 rtk_base_id = 3;
+  optional NetworkType network_type = 4;
+}
+
+message CMR {
+  SensorAtBase sensor_at_base = 1;
+  // Accepted values: 'automatic' or any antenna type defined in antenna file or user-defined
+  string antenna_at_base = 2;
+
+  // Values in range [0; 31] are accepted.
+  optional uint32 rtk_base_id = 3;
+  optional NetworkType network_type = 4;
+}
+
+// RTCM 1,2 v2 Data format
+message RTCM12v2 {
+  RtcmVersion rtcm_version = 1;
+  BitsPerByte bits_per_byte = 2;
+
+  // Values in range [0; 1023] are accepted.
+  optional uint32 rtk_base_id = 3;
+  optional NetworkType network_type = 4;
+}
+
+// RTCM 9,2 v2 Data format
+message RTCM92v2 {
+  RtcmVersion rtcm_version = 1;
+  BitsPerByte bits_per_byte = 2;
+
+  // Values in range [0; 1023] are accepted.
+  optional uint32 rtk_base_id = 3;
+  optional NetworkType network_type = 4;
+}
+
+// RTCM 18,19 v2 Data format
+message RTCM1819v2 {
+  RtcmVersion rtcm_version = 1;
+  BitsPerByte bits_per_byte = 2;
+
+  SensorAtBase sensor_at_base = 3;
+  // Accepted values: 'automatic' or any antenna type defined in antenna file or user-defined
+  string antenna_at_base = 4;
+
+  // Values in range [0; 1023] are accepted.
+  optional uint32 rtk_base_id = 5;
+  optional NetworkType network_type = 6;
+}
+
+// RTCM 20,21 v2 Data format
+message RTCM2021v2 {
+  RtcmVersion rtcm_version = 1;
+  BitsPerByte bits_per_byte = 2;
+
+  SensorAtBase sensor_at_base = 3;
+  // Accepted values: 'automatic' or any antenna type defined in antenna file or user-defined
+  string antenna_at_base = 4;
+
+  // Values in range [0; 1023] are accepted.
+  optional uint32 rtk_base_id = 5;
+  optional NetworkType network_type = 6;
+}
+
+enum RtcmVersion {
+  RTCM_VERSION_UNSPECIFIED = 0;
+  RTCM_VERSION_2_1 = 1;
+  RTCM_VERSION_2_2 = 2;
+  RTCM_VERSION_2_3 = 3;
+}
+
+enum NetworkType {
+  NETWORK_TYPE_UNSPECIFIED = 0;
+  NETWORK_TYPE_VRS = 1;
+  NETWORK_TYPE_FKP = 2;
+  NETWORK_TYPE_NEAREST = 3;
+  NETWORK_TYPE_IMAX = 4;
+  NETWORK_TYPE_MAX = 5;
+}
+
+// Enum for bits per byte for RTCM types
+enum BitsPerByte {
+  BITS_PER_BYTE_UNSPECIFIED = 0;
+  BITS_PER_BYTE_6 = 1;
+  BITS_PER_BYTE_8 = 2;
+}
+
+enum SensorAtBase {
+  SENSOR_AT_BASE_UNSPECIFIED = 0;
+  SENSOR_AT_BASE_AUTOMATIC = 1;
+  SENSOR_AT_BASE_LEICA_SR399 = 2;
+  SENSOR_AT_BASE_LEICA = 3;
+  SENSOR_AT_BASE_TRIMBLE = 4;
+  SENSOR_AT_BASE_TOPCON = 5;
+  SENSOR_AT_BASE_ASHTECH = 6;
+  SENSOR_AT_BASE_JAVAD = 7;
+  SENSOR_AT_BASE_MAGELLAN = 8;
+  SENSOR_AT_BASE_NOVATEL = 9;
+  SENSOR_AT_BASE_SOKKIA = 10;
+  SENSOR_AT_BASE_SEPTENTRIO = 11;
+  SENSOR_AT_BASE_ALTUS = 12;
+}

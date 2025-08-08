@@ -1,0 +1,31 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.satellite.v1;
+
+// Service error codes.
+enum ErrorCode {
+  // Not specified, default value (must be zero).
+  ERROR_CODE_UNSPECIFIED = 0;
+
+  // The elevation cut-off angle cannot be set to the provided value.
+  ERROR_CODE_CUTOFF_ANGLE_OUT_OF_RANGE = 1;
+
+  // The tracked constellations cannot be set because at least one satellite system has to be enabled.
+  ERROR_CODE_CANNOT_DISABLE_ALL_SATELLITE_SYSTEMS = 2;
+
+  // The tracked constellations cannot be set because GNSS sensor has no tracking capability for NAVIC.
+  ERROR_CODE_NAVIC_NO_TRACKING_CAPABILITY = 3;
+
+  // The tracked constellations cannot be set because GPS can not be disabled when a regional satellite 
+  // system is enabled.
+  ERROR_CODE_REGIONAL_SYSTEM_REQUIRES_GPS = 4;
+}
+
+// Detailed error info.
+// To get ErrorCodeInfo, please refer to details of returned gRPC status.
+message ErrorCodeInfo {
+  // Code of an error.
+  ErrorCode error_code = 1;
+}

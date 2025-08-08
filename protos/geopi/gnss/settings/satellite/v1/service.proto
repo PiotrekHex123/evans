@@ -1,0 +1,49 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.satellite.v1;
+
+option csharp_namespace = "LeicaGeosystems.GeoPI.Gnss.Settings.v1.SatelliteSettings";
+option java_package = "com.leica_geosystems.geopi.gnss.settings.satellite.v1";
+option java_outer_classname = "ServiceProto";
+option java_multiple_files = true;
+
+// Service for controlling satellite settings.
+service SatelliteSettings {
+  rpc SetCutoffAngle(SetCutoffAngleRequest) returns (SetCutoffAngleResponse);
+  rpc SetTrackedConstellations(SetTrackedConstellationsRequest) returns (SetTrackedConstellationsResponse);
+}
+
+message SetCutoffAngleRequest {
+  // New elevation cut-off angle [degrees].
+  // Values in the range of [-20, 89] degrees are accepted.
+  int32 cutoff_angle = 1;
+}
+
+message SetCutoffAngleResponse {
+  // empty
+}
+
+enum ConstellationType {
+  CONSTELLATION_TYPE_UNSPECIFIED = 0;
+  CONSTELLATION_TYPE_GPS         = 1;
+  CONSTELLATION_TYPE_GALILEO     = 2;
+  CONSTELLATION_TYPE_GLONASS     = 3;
+  CONSTELLATION_TYPE_BEIDOU      = 4;
+  CONSTELLATION_TYPE_NAVIC       = 5;
+  CONSTELLATION_TYPE_QZSS        = 6;
+}
+
+message ConstellationMask {
+  ConstellationType constellation = 1;
+  bool enable = 2;
+}
+
+message SetTrackedConstellationsRequest {
+  repeated ConstellationMask trackings = 1;
+}
+
+message SetTrackedConstellationsResponse {
+  // empty
+}

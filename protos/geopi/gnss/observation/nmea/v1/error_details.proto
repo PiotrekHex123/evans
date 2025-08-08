@@ -1,0 +1,20 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.observation.nmea.v1;
+
+// Service error codes
+enum ErrorCode {
+  // Not specified, default value (must be zero).
+  ERROR_CODE_UNSPECIFIED = 0;
+  // NMEA stream has been aborted due to new incoming stream request.
+  ERROR_CODE_ABORTED = 1;
+}
+
+// Detailed error info.
+// To get ErrorCodeInfo, please refer to details of returned gRPC status.
+message ErrorCodeInfo {
+  // Code of an error.
+  ErrorCode error_code = 1;
+}

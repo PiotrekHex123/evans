@@ -1,0 +1,32 @@
+// Copyright 2025 by Leica Geosystems AG, Heerbrugg
+
+syntax = "proto3";
+
+package geopi.gnss.settings.rtk.v1;
+
+// Service error codes
+enum ErrorCode {
+  // Not specified, default value (must be zero).
+  ERROR_CODE_UNSPECIFIED = 0;
+  // The RTK base id cannot be set to the provided value.
+  ERROR_CODE_RTK_BASE_ID_OUT_OF_RANGE = 1;
+  // The data format cannot be set to the provided value.
+  ERROR_CODE_UNKNOWN_DATA_FORMAT = 2;
+  // The RTCM version cannot be set to the provided value.
+  ERROR_CODE_RTCM_VERSION_OUT_OF_RANGE = 3;
+  // The bits per byte cannot be set to the provided value.
+  ERROR_CODE_BITS_PER_BYTE_OUT_OF_RANGE = 4;
+  // The sensor at base cannot be set to the provided value.
+  ERROR_CODE_SENSOR_AT_BASE_OUT_OF_RANGE = 5;
+  // The antenna at base cannot be set to the provided value.
+  ERROR_CODE_ANTENNA_AT_BASE_OUT_OF_RANGE = 6;
+  // The RTK network cannot be set to the provided value.
+  ERROR_CODE_RTK_NETWORK_TYPE_OUT_OF_RANGE = 7;
+}
+
+// Detailed error info.
+// To get ErrorCodeInfo, please refer to details of returned gRPC status.
+message ErrorCodeInfo {
+  // Code of an error.
+  ErrorCode error_code = 1;
+}
