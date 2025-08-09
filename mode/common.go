@@ -9,7 +9,6 @@ import (
 	"github.com/ktr0731/evans/grpc/grpcreflection"
 	"github.com/ktr0731/evans/idl"
 	"github.com/ktr0731/evans/idl/proto"
-	"github.com/ktr0731/evans/logger"
 	"github.com/ktr0731/evans/usecase"
 	"github.com/pkg/errors"
 )
@@ -30,10 +29,6 @@ func newSpec(cfg *config.Config, grpcClient grpcreflection.Client) (spec idl.Spe
 
 func newGRPCClient(cfg *config.Config) (grpc.Client, error) {
 	addr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
-	logger.Printf("gRPC client config: TLS=%v, TLSTrustServer=%v, Host=%s, Port=%s, ServerName=%s", 
-		cfg.Server.TLS, cfg.Server.TLSTrustServer, cfg.Server.Host, cfg.Server.Port, cfg.Server.Name)
-	logger.Printf("Certificate config: CACert=%s, ClientCert=%s, ClientKey=%s", 
-		cfg.Request.CACertFile, cfg.Request.CertFile, cfg.Request.CertKeyFile)
 	if cfg.Request.Web {
 		//TODO: remove second arg
 		return grpc.NewWebClient(addr, cfg.Server.Reflection, false, "", "", "", grpc.Headers(cfg.Request.Header)), nil

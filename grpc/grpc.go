@@ -116,93 +116,56 @@ type client struct {
 // If one of it is not found, NewClient returns ErrMutualAuthParamsAreNotEnough.
 // If useTLS is false, cacert, cert and certKey are ignored.
 func NewClient(addr, serverName string, useReflection, useTLS bool, trustCA bool, cacert, cert, certKey string, headers map[string][]string) (Client, error) {
-	logger.Printf("NewClient called with: addr=%s, serverName=%s, useTLS=%v, trustCA=%v", addr, serverName, useTLS, trustCA)
-	
-	// CRITICAL: When using TLS with InsecureSkipVerify, we must completely ignore serverName
-	// to prevent any hostname validation. This mirrors Python's ssl.CERT_NONE behavior.
+	// When using TLS with InsecureSkipVerify, ignore serverName to prevent hostname validation
 	if useTLS {
 		serverName = "" // Force serverName to empty to prevent hostname validation
-		logger.Printf("ServerName forced to empty string to prevent hostname validation conflicts")
 		
-		// CRITICAL: Replace localhost with IP address to completely bypass hostname validation
-		// This is the most aggressive fix to prevent "No match found for server name: localhost"
+		// Replace localhost with IP address to bypass hostname validation
 		if strings.Contains(addr, "localhost") {
 			addr = strings.ReplaceAll(addr, "localhost", "127.0.0.1")
-			logger.Printf("Address modified from localhost to IP: %s", addr)
 		}
 	}
 	
 	var opts []grpc.DialOption
 	if !useTLS {
-		logger.Println("Using insecure connection (no TLS)")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	} else { // Enable TLS authentication
-		logger.Println("Configuring TLS connection")
-
-		// Create TLS config that directly mirrors Python's SSL context configuration
-		// Python equivalent: context = ssl.create_default_context()
+		// Create TLS config with insecure verification for development/testing
 		tlsCfg := &tls.Config{
-			// Python equivalent: context.check_hostname = False
-			// Python equivalent: context.verify_mode = ssl.CERT_NONE
 			InsecureSkipVerify: true,
 			ServerName:         "", // Must be empty when InsecureSkipVerify is true
-			// Additional options to completely disable any form of hostname validation
 			MinVersion: tls.VersionTLS10,
 			MaxVersion: tls.VersionTLS13,
 			// Custom verification function that accepts everything
 			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-				// Always return nil to accept any certificate (mirrors ssl.CERT_NONE)
-				logger.Println("Custom certificate verification: accepting all certificates")
-				return nil
+				return nil // Accept any certificate
 			},
 			// Disable all verification callbacks
 			VerifyConnection: func(cs tls.ConnectionState) error {
-				// Always return nil to accept any connection
-				logger.Println("Custom connection verification: accepting all connections")
-				return nil
+				return nil // Accept any connection
 			},
 		}
 
-		logger.Println("TLS configured with InsecureSkipVerify=true and ServerName='' (mirrors Python ssl.CERT_NONE)")
-
 		// Load client certificates for mutual TLS if provided
-		// Python equivalent: context.load_cert_chain(certfile=certfile, keyfile=keyfile)
 		if cert != "" && certKey != "" {
-			logger.Printf("Loading client certificate from: %s", cert)
-			logger.Printf("Loading client key from: %s", certKey)
 			certificate, err := tls.LoadX509KeyPair(cert, certKey)
 			if err != nil {
-				logger.Printf("Failed to load client certificate: %v", err)
 				return nil, errors.Wrap(err, "failed to read the client certificate")
 			}
 			tlsCfg.Certificates = append(tlsCfg.Certificates, certificate)
-			logger.Printf("Successfully loaded client certificate for mutual TLS authentication")
 		} else if cert != "" || certKey != "" {
-			logger.Printf("Incomplete certificate configuration: cert=%s, certKey=%s", cert, certKey)
 			return nil, ErrMutualAuthParamsAreNotEnough
-		} else {
-			logger.Println("No client certificates provided - using server authentication only")
 		}
 
 		creds := credentials.NewTLS(tlsCfg)
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 
-		// CRITICAL: Add additional gRPC options to completely disable hostname validation
-		// This prevents any remaining hostname checks that might bypass InsecureSkipVerify
+		// Add gRPC options to disable hostname validation
 		opts = append(opts, grpc.WithDisableServiceConfig())
 		opts = append(opts, grpc.WithDefaultServiceConfig(`{"healthCheckConfig": {"serviceName": ""}}`))
-		
-		// CRITICAL: Override the authority to prevent hostname validation
-		// This forces gRPC to not validate the hostname against certificates
 		opts = append(opts, grpc.WithAuthority(""))
-		
-		// ULTIMATE FIX: Add even more aggressive options to disable all forms of validation
 		opts = append(opts, grpc.WithDisableRetry())
 		opts = append(opts, grpc.WithNoProxy())
-		
-		// Never set gRPC Authority when using InsecureSkipVerify to prevent hostname validation conflicts
-		logger.Println("gRPC Authority explicitly set to empty string to disable hostname validation")
-		logger.Println("Additional gRPC options added to disable service config, health checks, retries, and proxy")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
