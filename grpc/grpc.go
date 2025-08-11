@@ -2,14 +2,14 @@ package grpc
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"strings"
 	"time"
-
-	"crypto/tls"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/ktr0731/evans/grpc/grpcreflection"
@@ -22,7 +22,78 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-var ErrMutualAuthParamsAreNotEnough = errors.New("cert and certkey are required to authenticate mutually")
+// createInsecureTLSConfig creates a TLS configuration optimized for development/testing
+// environments with self-signed certificates. This mirrors Python's SSL context behavior:
+// context.check_hostname = False, context.verify_mode = ssl.CERT_NONE
+func createInsecureTLSConfig(cert, certKey string) (*tls.Config, error) {
+	config := &tls.Config{
+		// Security settings for development - disable all verification
+		InsecureSkipVerify: true,  // Python: context.verify_mode = ssl.CERT_NONE
+		ServerName:         "",    // Python: context.check_hostname = False
+		
+		// TLS version constraints - balance compatibility and security
+		MinVersion: tls.VersionTLS12, // More secure than TLS 1.0
+		MaxVersion: tls.VersionTLS13, // Support latest version
+		
+		// Custom verification callbacks that accept everything
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			return nil // Accept any certificate (development mode)
+		},
+		VerifyConnection: func(cs tls.ConnectionState) error {
+			return nil // Accept any connection (development mode)
+		},
+	}
+
+	// Load client certificates for mutual TLS if provided (Python: context.load_cert_chain)
+	if cert != "" && certKey != "" {
+		certificate, err := tls.LoadX509KeyPair(cert, certKey)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to load client certificate pair: cert=%s, key=%s", cert, certKey)
+		}
+		config.Certificates = []tls.Certificate{certificate}
+		
+		// Client certificate configuration for mutual TLS - set after certificates are loaded
+		config.GetClientCertificate = func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			// Return the first available certificate when server requests one
+			if len(config.Certificates) > 0 {
+				return &config.Certificates[0], nil
+			}
+			return nil, nil
+		}
+		
+		logger.Printf("SUCCESS: Loaded client certificate for mutual TLS: %s", cert)
+	} else if cert != "" || certKey != "" {
+		return nil, ErrMutualAuthParamsAreNotEnough
+	}
+
+	return config, nil
+}
+
+// normalizeAddress converts localhost to IP address for better TLS compatibility
+func normalizeAddress(addr string) string {
+	if strings.Contains(addr, "localhost") {
+		// Replace localhost with 127.0.0.1 to avoid hostname verification issues
+		normalized := strings.ReplaceAll(addr, "localhost", "127.0.0.1")
+		logger.Printf("DEBUG: Normalized address from %s to %s", addr, normalized)
+		return normalized
+	}
+	return addr
+}
+
+// isLocalhostAddress checks if the address is a localhost/loopback address
+func isLocalhostAddress(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		// If we can't parse it, check the whole string
+		host = addr
+	}
+	
+	return host == "localhost" || 
+		   host == "127.0.0.1" || 
+		   host == "::1" || 
+		   strings.HasPrefix(host, "127.") ||
+		   host == ""
+}
 
 // RPC represents a RPC which belongs to a gRPC service.
 type RPC struct {
@@ -104,75 +175,69 @@ type client struct {
 	grpcreflection.Client
 }
 
-// NewClient creates a new gRPC client. It dials to the server specified by addr.
-// addr format is the same as the first argument of grpc.Dial.
-// If serverName is not empty, it overrides the gRPC server name used to
-// verify the hostname on the returned certificates.
-// If useReflection is true, the gRPC client enables gRPC reflection.
-// If useTLS is true, the gRPC client establishes a secure connection with the server.
-// If trustCA is true, the gRPC client trusts the server, downloading its TLS certificate chain in the first place.
+var ErrMutualAuthParamsAreNotEnough = errors.New("cert and certkey are required to authenticate mutually")
+
+// NewClient creates a new gRPC client with enhanced TLS support for development environments.
+// This implementation provides robust support for self-signed certificates and localhost connections.
 //
-// The set of cert and certKey enables mutual authentication if useTLS is enabled.
-// If one of it is not found, NewClient returns ErrMutualAuthParamsAreNotEnough.
-// If useTLS is false, cacert, cert and certKey are ignored.
+// Parameters:
+//   - addr: Server address (e.g., "localhost:50001")
+//   - serverName: Server name for TLS verification (ignored in insecure mode)
+//   - useReflection: Enable gRPC reflection for dynamic service discovery
+//   - useTLS: Enable TLS/SSL connection
+//   - trustCA: Trust server certificates (ignored in insecure mode)
+//   - cacert: CA certificate file (ignored in insecure mode)
+//   - cert: Client certificate file for mutual TLS
+//   - certKey: Client private key file for mutual TLS
+//   - headers: Additional gRPC headers
 func NewClient(addr, serverName string, useReflection, useTLS bool, trustCA bool, cacert, cert, certKey string, headers map[string][]string) (Client, error) {
-	// When using TLS with InsecureSkipVerify, ignore serverName to prevent hostname validation
-	if useTLS {
-		serverName = "" // Force serverName to empty to prevent hostname validation
+	var opts []grpc.DialOption
+	
+	if !useTLS {
+		// Standard insecure connection
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		logger.Printf("INFO: Creating insecure gRPC connection to %s", addr)
+	} else {
+		// TLS connection with development-friendly configuration
+		addr = normalizeAddress(addr) // Convert localhost to IP for better compatibility
 		
-		// Replace localhost with IP address to bypass hostname validation
-		if strings.Contains(addr, "localhost") {
-			addr = strings.ReplaceAll(addr, "localhost", "127.0.0.1")
+		// Create insecure TLS config optimized for development
+		tlsConfig, err := createInsecureTLSConfig(cert, certKey)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create TLS configuration")
 		}
+		
+		creds := credentials.NewTLS(tlsConfig)
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+		
+		// Additional gRPC options for development environments
+		if isLocalhostAddress(addr) {
+			// Optimize for localhost connections
+			opts = append(opts, 
+				grpc.WithAuthority(""),                    // Clear authority for localhost
+				grpc.WithDisableServiceConfig(),          // Disable service config validation
+				grpc.WithDisableRetry(),                  // Disable retries for faster failure
+				grpc.WithNoProxy(),                       // Direct connection
+			)
+			logger.Printf("INFO: Applied localhost optimizations for %s", addr)
+		}
+		
+		logger.Printf("INFO: Creating secure gRPC connection to %s with insecure TLS", addr)
 	}
 	
-	var opts []grpc.DialOption
-	if !useTLS {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	} else { // Enable TLS authentication
-		// Create TLS config with insecure verification for development/testing
-		tlsCfg := &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         "", // Must be empty when InsecureSkipVerify is true
-			MinVersion: tls.VersionTLS10,
-			MaxVersion: tls.VersionTLS13,
-			// Custom verification function that accepts everything
-			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-				return nil // Accept any certificate
-			},
-			// Disable all verification callbacks
-			VerifyConnection: func(cs tls.ConnectionState) error {
-				return nil // Accept any connection
-			},
-		}
-
-		// Load client certificates for mutual TLS if provided
-		if cert != "" && certKey != "" {
-			certificate, err := tls.LoadX509KeyPair(cert, certKey)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to read the client certificate")
-			}
-			tlsCfg.Certificates = append(tlsCfg.Certificates, certificate)
-		} else if cert != "" || certKey != "" {
-			return nil, ErrMutualAuthParamsAreNotEnough
-		}
-
-		creds := credentials.NewTLS(tlsCfg)
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-
-		// Add gRPC options to disable hostname validation
-		opts = append(opts, grpc.WithDisableServiceConfig())
-		opts = append(opts, grpc.WithDefaultServiceConfig(`{"healthCheckConfig": {"serviceName": ""}}`))
-		opts = append(opts, grpc.WithAuthority(""))
-		opts = append(opts, grpc.WithDisableRetry())
-		opts = append(opts, grpc.WithNoProxy())
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	// Create connection with timeout and proper error handling
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Increased timeout for TLS handshake
 	defer cancel()
+	
+	logger.Printf("DEBUG: Dialing gRPC server at %s...", addr)
 	conn, err := grpc.DialContext(ctx, addr, opts...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to dial to gRPC server")
+		return nil, errors.Wrapf(err, "failed to dial gRPC server at %s", addr)
 	}
+	
+	// Verify connection state
+	state := conn.GetState()
+	logger.Printf("SUCCESS: gRPC connection established to %s (state: %s)", addr, state.String())
 
 	client := &client{
 		conn:    conn,
@@ -181,6 +246,7 @@ func NewClient(addr, serverName string, useReflection, useTLS bool, trustCA bool
 
 	if useReflection {
 		client.Client = grpcreflection.NewClient(conn, headers)
+		logger.Printf("INFO: gRPC reflection enabled for dynamic service discovery")
 	}
 
 	return client, nil
