@@ -184,38 +184,21 @@ var ErrMutualAuthParamsAreNotEnough = errors.New("cert and certkey are required 
 //   - certKey: Client private key file for mutual TLS
 //   - headers: Additional gRPC headers
 func NewClient(addr, serverName string, useReflection, useTLS bool, trustCA bool, cacert, cert, certKey string, headers map[string][]string) (Client, error) {
-	var opts []grpc.DialOption
-	
-	if !useTLS {
-		// Standard insecure connection
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		logger.Printf("Creating insecure gRPC connection to %s", addr)
-	} else {
-		addr = normalizeAddress(addr)
-		
-		// Create insecure TLS config optimized for development
-		tlsConfig, err := createInsecureTLSConfig(cert, certKey)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create TLS configuration")
-		}
-		
-		creds := credentials.NewTLS(tlsConfig)
-		opts = append(opts, grpc.WithTransportCredentials(creds))
-		
-		// Additional gRPC options for development environments
-		if isLocalhostAddress(addr) {
-			// Optimize for localhost connections
-			opts = append(opts, 
-				grpc.WithAuthority(""),                    // Clear authority for localhost
-				grpc.WithDisableServiceConfig(),          // Disable service config validation
-				grpc.WithDisableRetry(),                  // Disable retries for faster failure
-				grpc.WithNoProxy(),                       // Direct connection
-			)
-			logger.Printf("Applied localhost optimizations for %s", addr)
-		}
-		
-		logger.Printf("Creating secure gRPC connection to %s with insecure TLS", addr)
-	}
+    // Only change: if serverName == "" do NOT set tls.Config.ServerName so SNI is omitted.
+    var opts []grpc.DialOption
+    if !useTLS {
+        opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+    } else {
+        tlsConfig, err := createInsecureTLSConfig(cert, certKey)
+        if err != nil {
+            return nil, errors.Wrap(err, "failed to create TLS configuration")
+        }
+        if serverName != "" {
+            tlsConfig.ServerName = serverName
+        }
+        creds := credentials.NewTLS(tlsConfig)
+        opts = append(opts, grpc.WithTransportCredentials(creds))
+    }
 	
 	// Create connection with timeout and proper error handling
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
